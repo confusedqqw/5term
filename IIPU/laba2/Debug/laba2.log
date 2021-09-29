@@ -1,0 +1,5 @@
+﻿  laba2.cpp
+D:\5term\IIPU\laba2\laba2.cpp(42,34): warning C4554: '>>': check operator precedence for possible error; use parentheses to clarify precedence
+D:\5term\IIPU\laba2\laba2.cpp(50,34): warning C4244: '/=': conversion from 'double' to 'ULONGLONG', possible loss of data
+D:\5term\IIPU\laba2\laba2.cpp(51,33): warning C4244: '/=': conversion from 'double' to 'ULONGLONG', possible loss of data
+  laba2.vcxproj -> D:\5term\IIPU\laba2\Debug\laba2.exe
