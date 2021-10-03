@@ -66,7 +66,6 @@ def Connect1():
     except Exception:
         if ser is None:
           Error("port is closed")
-    #tr_in.start()
     startFlag = 1
 
 def Connect2():
@@ -78,7 +77,6 @@ def Connect2():
     except Exception:
         if ser is None:
             Error("port is closed")
-    #tr_in.start()
     startFlag = 1
 
 def Choose():
@@ -122,11 +120,7 @@ def debitStuffing():
         bit = str.replace("00010110","0001011")
         outputListbox.insert(END, bit)
 
-# def validate(a):
-#     return a =="" or a.isdigit()
-
 root = Tk() #создаем форму
-#vcmd = (root.register(validate),'%P')
 root.title("laba1")
 root.resizable(False, False)
 
