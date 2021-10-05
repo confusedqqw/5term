@@ -12,38 +12,10 @@ startFlag = 0
 fl1=0
 ser = None
 pickFlag = 0
+bufSend = ""
+getBuf = ""
 
-def getInput():
-    global ser
-    global startFlag
-    global stringBuffer
-    while 1:
-        in_len = 0
-        while in_len<1:
-            try:
-                in_st = ser.readline() #считали строку
-                in_len = len(in_st)#сохранили длину
-            except Exception:
-                if ser is None:
-                    debugListbox.insert(END, "Error while reading from port(getInput()).")
-                    debugListbox.insert(END, "Enable ports and re-open the program")
-                    break
-        stringBuffer.append(in_st.decode())
-        time.sleep(1)
 
-tr_in = threading.Thread(target = getInput) #поток приема
-tr_in.daemon = True
-
-def Send():
-    out_st = inputEntry.get()
-    try:
-        bitStuffing(out_st)
-    except Exception:
-        if ser is None:
-            Error("Cant write!")
-            debugListbox.insert(END, "Error in a Send() function.")
-            debugListbox.insert(END, "Enable ports and re-open the program")
-    inputEntry.delete(0, END)
 
 def outFlag():
     global sendFlag #флаг запроса на передачу
@@ -51,9 +23,12 @@ def outFlag():
 
 def PortDisplay():
     global sendFlag
-    debitStuffing()
+    global stringBuffer
+    while len(stringBuffer) > 0:
+        str = stringBuffer.pop(0)
+        outputListbox.insert(END, str)
     if sendFlag:
-        Send()
+        bitStuffing()
         sendFlag = 0
     root.after(100,PortDisplay)#бесконечный цикл
 
@@ -96,29 +71,72 @@ def Error(text):
     msg = text
     showinfo(title='Result', message=msg)
 
-def bitStuffing(str):
+def debitStuffing():
     global ser
+    global start_flag
+    global stringBuffer
+    global getBuf
+    while 1: #ждем прием строки
+        len_ = 0 #длина принятой строки
+        while len_ < 1: #пока 0 попытка чтения из порта
+            try:
+                str_ = ""
+                bitStuffing = ser.readline()
+                bitStuffing = bitStuffing.decode()
+                if len(getBuf) < 6:
+                    tmp = getBuf
+                    tmp_len = len(getBuf)
+                else:
+                    tmp = getBuf[len(getBuf) - 6:]
+                    tmp_len = len(tmp)
+                tmp += bitStuffing
+                bitStuffing = tmp.replace("0001010", "000101")
+                str_ = bitStuffing[tmp_len:]
+                getBuf += str_
+                len_ = len(str_)
+            except Exception:
+                if ser is None:
+                    break
+        stringBuffer.append(str_)
+        time.sleep(1)
+
+tr_in = threading.Thread(target = debitStuffing) #поток приема
+tr_in.daemon = True
+
+def bitStuffing():
+    global ser
+    global bufSend
+    userInput = inputEntry.get()
+    tmp = ""
+    tmp_len = 6
     isValid = True
-    for look in str:
-        if look != '0' and look !='1':
+    for symbol in userInput:
+        if symbol != '0' and symbol != '1':
             isValid = False
-            debugListbox.insert(END,"Invalid input!")
+            debugListbox.insert(END, "Invalid input!")
             return
         if isValid:
-            if len(str)>0:
-                bit_str = str.replace("0001011", "00010110")
-                ser.write(bit_str.encode())
-                debugListbox.insert(END, "input:" + str)
-                bit_str = str.replace("0001011", "0001011 0 ")
-                debugListbox.insert(END, "bit-stuffing:" + bit_str)
+            if len(userInput) > 0:
+                if len(bufSend) < 6:
+                    tmp = bufSend
+                    tmp_len = len(bufSend)
+                else:
+                    tmp = bufSend[len(bufSend) - 6:]
+                tmp += userInput
+                bufSend += userInput
+                debugListbox.insert(END, "Buffer:" + bufSend)
+                if tmp.find("000101") == -1:
+                    ser.write(userInput.encode())
+                    debugListbox.insert(END, "Input:" + userInput)
+                else:
+                    bitStuffing = tmp.replace("000101", "0001010")
+                    bitStuffing = bitStuffing[tmp_len:]
+                    ser.write(bitStuffing.encode())
+                    debugListbox.insert(END, "Input:" + userInput)
+                    bitStuffing = tmp.replace("000101", "000101[0]")
+                    bitStuffing = bitStuffing[tmp_len:]
+                    debugListbox.insert(END, "After bit-stuffing:" + bitStuffing)
                 break
-
-def debitStuffing():
-    global stringBuffer
-    while len(stringBuffer) > 0:
-        str = stringBuffer.pop(0)
-        bit = str.replace("00010110","0001011")
-        outputListbox.insert(END, bit)
 
 root = Tk() #создаем форму
 root.title("laba1")
@@ -151,7 +169,7 @@ speed.pack(fill= X)
 buttonChoose = ttk.Button(debug, text ="confirm", command = Choose)
 buttonChoose.pack()
 
-sendButton = Button(debug, text ="input", command = outFlag)
+sendButton = Button(debug, text ="send", command = outFlag)
 sendButton.pack(side=BOTTOM)
 
 root.after(10,PortDisplay)
