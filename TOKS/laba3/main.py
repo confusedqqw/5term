@@ -15,7 +15,7 @@ ser = None
 pickFlag = 0
 string_send_buf = ""
 double_error_occurred_flag = 0
-
+ZERO_STR = "0000000000000000000000"
 
 
 
@@ -98,16 +98,14 @@ def send():
     global string_send_buf
     userInput = inputEntry.get()
     isValid = True
-    for symbol in userInput:
-        if symbol != '0' and symbol != '1':
-            isValid = False
-            debugListbox.insert(END, "Invalid input!")
-            return
-        if isValid:
-            if len(userInput) > 0:
-                fin_str = splitting_into_frames(userInput)
-                ser.write(fin_str.encode())
-            break
+    if len(userInput) > 0:
+        fin_str = splitting_into_frames(userInput)
+        ser.write(fin_str.encode())
+    inputEntry.config(validate="none")
+    inputEntry.delete(0, END)
+    inputEntry.config(validate="key")
+
+
 
 def bit_insert(msg):
     i = 0
@@ -121,31 +119,36 @@ def bit_insert(msg):
 
 def splitting_into_frames(str_):
     bit_list_all = list([int(i) for i in str_])
-    debugListbox.insert(END, "typed:" + str_)
+    debugListbox.insert(END, "User input:" + str_)
     fin_str = ""
     while len(bit_list_all) > 0:
-        x = 0
-        if len(bit_list_all) < 22:
+        if len(bit_list_all) < 23:
             bit_list = list(bit_list_all)
             del bit_list_all[:]
-            if bit_list[0] == 0:
-                x ^= 1
-            while len(bit_list) < 22:
-                bit_list.insert(0, x ^ 0)
+            while len(bit_list) < 23:
+                bit_list.insert(len(bit_list), 0)
         else:
-            bit_list = list(bit_list_all[:22])
-            del bit_list_all[:22]
-            if bit_list[0] == 0:
-                x ^= 1
-        bit_list.insert(0, x)
+            bit_list = list(bit_list_all[:23])
+            del bit_list_all[:24]
         bit_list = bit_insert(bit_list)
         bit_list = hamming_code(bit_list)
         bit_str = "".join(str(i) for i in bit_list)
-        debugListbox.insert(END, "hamming:" + bit_str)
+        debugListbox.insert(END, "Hamming code:" + bit_str)
         bit_list = random_corruption(bit_list)
         fin_str += "".join(str(i) for i in bit_list)
     return fin_str
 
+def linking_frames(str_):
+    bit_list_all = list([int(i) for i in str_])
+    debugListbox.insert(END, "Received:" + str_)
+    fin_str = ""
+    x = 0
+    while len(bit_list_all) > 0:
+        bit_list = list(bit_list_all[:30])
+        del bit_list_all[:30]
+        bit_list = hamming_check(bit_list)
+        fin_str += "".join(str(i) for i in bit_list)
+    return fin_str
 
 def hamming_code(bit_list):
     n = 0
@@ -172,22 +175,6 @@ def hamming_code(bit_list):
         i += 1
     bit_list.append(bit_sum)
     return bit_list
-
-
-def linking_frames(str_):
-    bit_list_all = list([int(i) for i in str_])
-    debugListbox.insert(END, "received:" + str_)
-    fin_str = ""
-    x = 0
-    while len(bit_list_all) > 0:
-        bit_list = list(bit_list_all[:29])
-        del bit_list_all[:29]
-        bit_list = hamming_check(bit_list)
-        x = bit_list.pop(0)
-        while x == bit_list[0]:
-            bit_list.pop(0)
-        fin_str += "".join(str(i) for i in bit_list)
-    return fin_str
 
 
 def hamming_check(bit_str):
@@ -233,7 +220,7 @@ def hamming_decode(bit_list, corrupt_bit_pos, ctrl, corrupt_bit_list):
     bit_str = [str(c) for c in bit_list]
     bit_pos_str = [str(c) for c in corrupt_bit_list]
     if corrupt_bit_pos == -1:
-        debugListbox.insert(END, "double error occurred")
+        debugListbox.insert(END, "Double error!")
         double_error_occurred_flag = 1
         for i in bit_pos_str:
             i = 0
@@ -249,7 +236,7 @@ def hamming_decode(bit_list, corrupt_bit_pos, ctrl, corrupt_bit_list):
     bit_str[len(bit_str) - 1] = "[" + str(bit_str[len(bit_str) - 1]) + "]"
     bit_str = "".join(bit_str)
     bit_pos_str = "".join(bit_pos_str)
-    debugListbox.insert(END, "check: " + bit_str + ":" + bit_pos_str)
+    debugListbox.insert(END,bit_str + ":" + bit_pos_str)
     if ctrl != 1:
         bit_list[corrupt_bit_pos - 1] ^= 1
     n = 0
@@ -282,6 +269,15 @@ def random_corruption(bit_list):
     return bit_list
 
 
+def input_check(char):
+    if char.isdigit():
+        if char == "0" or char == "1":
+            return True
+        else:
+            return False
+    else:
+        return False
+
 
 root = Tk() #создаем форму
 root.title("laba3")
@@ -301,7 +297,8 @@ scrollbar.pack(side=RIGHT, fill=Y)
 outputListbox = Listbox(output, yscrollcommand=scrollbar.set, width=70, height=7)
 outputListbox.pack(side=LEFT)
 
-inputEntry = Entry(input, width=72)
+validation = root.register(input_check)
+inputEntry = Entry(input, width=72, validate="key", validatecommand=(validation, "%S"))
 inputEntry.pack()
 
 debugListbox = Listbox(debug, width=70, height=5)
@@ -319,3 +316,4 @@ sendButton.pack(side=BOTTOM)
 
 root.after(10,PortDisplay)
 root.mainloop()
+
