@@ -43,7 +43,7 @@ def Connect1():
     global ser
     global tr_in
     try:
-        ser = serial.Serial('COM2', int(speed.get()), timeout=1)
+        ser = serial.Serial('COM3', int(speed.get()), timeout=1)
     except Exception:
         if ser is None:
           Error("port is closed")
@@ -54,7 +54,7 @@ def Connect2():
     global ser
     global tr_in
     try:
-        ser = serial.Serial('COM3', int(speed.get()), timeout=1)
+        ser = serial.Serial('COM4', int(speed.get()), timeout=1)
     except Exception:
         if ser is None:
             Error("port is closed")
@@ -106,6 +106,7 @@ def send():
             fin_str+="0"
             flag = 0
         ser.write(fin_str.encode())
+
     inputEntry.config(validate="none")
     inputEntry.delete(0, END)
     inputEntry.config(validate="key")
@@ -126,6 +127,7 @@ def makeFrame(str_):
     global flag
     list_all = list([int(i) for i in str_])
     debugListbox.insert(END, "User input:" + str_)
+    #debugListbox.insert(END,"\n")
     result = ""
     while len(list_all) > 0:
         x = 0
@@ -143,14 +145,13 @@ def makeFrame(str_):
         bit_list = bitInsert(bit_list)
         bit_list = makeCode(bit_list)
         bit_str = "".join(str(i) for i in bit_list)
-        debugListbox.insert(END, "Hamming code:" + bit_str)
+        #debugListbox.insert(END, "Hamming code:" + bit_str)
         bit_list = randomError(bit_list)
         result += "".join(str(i) for i in bit_list)
     return result
 
 def linkFrame(str_):
     list_all = list([int(i) for i in str_])
-    debugListbox.insert(END, "Received:" + str_)
     result = ""
     while len(list_all) > 0:
         bit_list = list(list_all[:29])
@@ -233,11 +234,10 @@ def makeDecode(bit_list, error_bits_pos, ctrl, error_bit_list):
     global doubleError
     bit_str = [str(c) for c in bit_list]
     bit_pos_str = [str(c) for c in error_bit_list]
+    print(bit_pos_str)
     if error_bits_pos == -1:
         debugListbox.insert(END, "Double error!")
         doubleError = 1
-        for i in bit_pos_str:
-            i = 0
     elif ctrl != 1:
         if error_bits_pos == len(bit_list):
             error_bit_list = [1, 0, 1, 0, 0]
@@ -250,7 +250,8 @@ def makeDecode(bit_list, error_bits_pos, ctrl, error_bit_list):
     bit_str[len(bit_str) - 1] = "[" + str(bit_str[len(bit_str) - 1]) + "]"
     bit_str = "".join(bit_str)
     bit_pos_str = "".join(bit_pos_str)
-    debugListbox.insert(END,bit_str + ":" + bit_pos_str)
+    debugListbox.insert(END,"Hamming code:" + bit_str + ":" + bit_pos_str)
+    debugListbox.insert(END,"\n")
     if ctrl != 1:
         bit_list[error_bits_pos - 1] ^= 1
     n = 0
@@ -271,15 +272,17 @@ def randomError(bit_list):
             bit_str = [str(c) for c in bit_list]
             bit_str[x] = "{" + str(bit_str[x]) + "}"
             bit_str[y] = "{" + str(bit_str[y]) + "}"
-            debugListbox.insert(END, "Error occurred:")
+            debugListbox.insert(END, "Error:")
             debugListbox.insert(END, "".join(bit_str))
+            #debugListbox.insert(END, "\n")
         else:
             x = randint(0, len(bit_list) - 1)
             bit_list[x] ^= 1
             bit_str = [str(c) for c in bit_list]
             bit_str[x] = "{" + str(bit_str[x]) + "}"
-            debugListbox.insert(END, "Error occurred:")
+            debugListbox.insert(END, "Error:")
             debugListbox.insert(END, "".join(bit_str))
+            #debugListbox.insert(END, "\n")
     return bit_list
 
 
@@ -295,7 +298,7 @@ def inputValidation(char):
 
 root = Tk() #создаем форму
 root.title("laba3")
-root.resizable(False, False)
+root.resizable(False,False)
 
 input = LabelFrame()
 input.pack()
@@ -330,4 +333,3 @@ sendButton.pack(side=BOTTOM)
 
 root.after(10,PortDisplay)
 root.mainloop()
-
