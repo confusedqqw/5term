@@ -161,7 +161,7 @@ def linkFrame(str_):
             del list_all[:]
             x = bit_list.pop()
             while x == bit_list[len(bit_list) - 1]:
-                bit_list.pop()
+               bit_list.pop()
         result += "".join(str(i) for i in bit_list)
     return result
 
